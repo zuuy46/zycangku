@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>心理暗房 | 心理测试</title>
+  <style>
+    /* ========== 基础变量：指定专属色值 ========== */
+    :root {
+      --darkroom-black: #14110D;
+      --photo-paper: #EDE3CC;
+      --safe-light-red: #C1432A;    /* A 理性底片 */
+      --developer-green: #3E6B5C;  /* B 共情底片 */
+      --fixing-gold: #B08D3E;      /* C 随性底片 */
+      --white: #ffffff;
+    }
+
+    /* 全局重置 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--darkroom-black);
+      color: var(--white);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /* 字体定义 */
+    .title-font {
+      font-family: "Noto Serif SC", serif;
+      font-weight: 500;
+    }
+    .mono-font {
+      font-family: "JetBrains Mono", monospace;
+      letter-spacing: 0.06em;
+    }
+
+    /* 页面视图切换 */
+    .view {
+      display: none;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* ========== 首页样式 ========== */
+    .home-view {
+      padding-top: 80px;
+      text-align: center;
+    }
+    .home-view h1 {
+      font-size: 2.2rem;
+      color: var(--photo-paper);
+      margin-bottom: 12px;
+    }
+    .home-view .subtitle {
+      color: #b8b0a2;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .home-desc {
+      text-align: left;
+      border-left: 2px solid var(--safe-light-red);
+      padding-left: 16px;
+      margin-bottom: 20px;
+      color: #c9c2b4;
+      line-height: 1.7;
+    }
+    .dimension-desc {
+      text-align: left;
+      padding: 16px;
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 40px;
+      border-radius: 4px;
+    }
+    .dimension-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .dimension-tag {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .btn {
+      background: transparent;
+      border: 1px solid var(--safe-light-red);
+      color: var(--safe-light-red);
+      padding: 14px 32px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 2px;
+    }
+    .btn:focus-visible {
+      outline: 2px solid var(--safe-light-red);
+      outline-offset: 3px;
+    }
+    .btn:hover {
+      background-color: var(--safe-light-red);
+      color: var(--darkroom-black);
+    }
+
+    /* ========== 答题页：曝光计进度条 ========== */
+    .question-view {
+      padding-top: 40px;
+    }
+    .exposure-meter-wrap {
+      margin-bottom: 32px;
+    }
+    .exposure-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .exposure-meter {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .exposure-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--safe-light-red);
+      transition: width 0.4s ease;
+    }
+    .frame-number {
+      color: var(--fixing-gold);
+      margin-bottom: 20px;
+    }
+    .question-title {
+      font-size: 1.4rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .option-item {
+      border: 1px solid rgba(237, 227, 204, 0.25);
+      padding: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      border-radius: 2px;
+    }
+    .option-item:focus-visible {
+      outline: 2px solid var(--safe-light-red);
+      outline-offset: 3px;
+    }
+    .option-item:hover {
+      border-color: var(--safe-light-red);
+      background: rgba(193, 67, 42, 0.08);
+    }
+
+    /* ========== 显影加载页 ========== */
+    .develop-view {
+      padding-top: 100px;
+      text-align: center;
+    }
+    .develop-text {
+      color: var(--photo-paper);
+      margin-bottom: 24px;
+    }
+    .develop-loader {
+      width: 120px;
+      height: 4px;
+      background: rgba(237, 227, 204, 0.15);
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .develop-bar {
+      height: 100%;
+      width: 30%;
+      background: var(--developer-green);
+      animation: developAnim 1.8s ease-in-out infinite;
+    }
+    @keyframes developAnim {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(300%); }
+    }
+
+    /* ========== 结果页：冲印照片卡片 ========== */
+    .result-view {
+      padding-top: 40px;
+    }
+    .photo-card {
+      background-color: var(--photo-paper);
+      color: var(--darkroom-black);
+      padding: 32px 24px;
+      position: relative;
+      transform: rotate(-1.2deg);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    /* 照片四角卡角装饰 */
+    .photo-card::before, .photo-card::after,
+    .photo-card .corner-1, .photo-card .corner-2 {
+      content: "";
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--darkroom-black);
+      border-radius: 1px;
+    }
+    .photo-card::before { top: 10px; left:10px; border-right: none; border-bottom: none; }
+    .photo-card::after  { top:10px; right:10px; border-left: none; border-bottom: none; }
+    .photo-card .corner-1 { bottom:10px; left:10px; border-right: none; border-top: none; }
+    .photo-card .corner-2 { bottom:10px; right:10px; border-left: none; border-top: none; }
+
+    .result-title {
+      font-size: 1.7rem;
+      margin-bottom: 16px;
+    }
+    .result-desc {
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+    .data-group {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap:14px;
+    }
+    .data-item {
+      display:flex;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(20,17,13,0.1);
+    }
+    .data-item:last-child { border: none; }
+    .data-1 { color: var(--safe-light-red); font-weight: 500; }
+    .data-2 { color: var(--developer-green); font-weight: 500; }
+    .data-3 { color: var(--fixing-gold); font-weight: 500; }
+
+    /* SVG 鉴定印章，延迟0.5s弹入，冲压动画 */
+    .stamp-wrap {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 110px;
+      height: 110px;
+      opacity:0;
+      transform: scale(1.6);
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events:none;
+    }
+    .stamp-wrap.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .restart-btn-wrap {
+      margin-top:40px;
+      text-align:center;
+    }
+
+    /* 减少动画适配 */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* 移动端360px适配 */
+    @media (max-width:360px) {
+      body { padding:16px 12px; }
+      .photo-card { padding:24px 16px; }
+      .result-title { font-size:1.4rem; }
+    }
+  </style>
+  <!-- 字体预加载 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 首页视图 -->
+  <div class="view home-view active" id="home">
+    <h1 class="title-font">心理暗房</h1>
+    <p class="subtitle mono-font">PSYCHO DARKROOM · 曝光你的心理底片</p>
+    <div class="home-desc">
+      <p>心理如同未曝光的胶片。</p>
+      <p>每一道问题，都是一次精准曝光。</p>
+      <p>完成10道底片测试，解锁你的专属心理人格画像。</p>
+    </div>
+    <div class="dimension-desc">
+      <div class="dimension-item">
+        <span class="dimension-tag" style="background: var(--safe-light-red);"></span>
+        <span><strong>理性底片</strong>：冷静克制、逻辑优先、擅长掌控秩序与节奏</span>
+      </div>
+      <div class="dimension-item">
+        <span class="dimension-tag" style="background: var(--developer-green);"></span>
+        <span><strong>共情底片</strong>：细腻敏感、擅长共情、包容他人情绪与感受</span>
+      </div>
+      <div class="dimension-item">
+        <span class="dimension-tag" style="background: var(--fixing-gold);"></span>
+        <span><strong>随性底片</strong>：松弛自由、适应性强、不被规则与执念束缚</span>
+      </div>
+    </div>
+    <button class="btn mono-font" id="startBtn">开始曝光测试</button>
+  </div>
+
+  <!-- 答题视图 -->
+  <div class="view question-view" id="question">
+    <div class="exposure-meter-wrap">
+      <div class="exposure-label mono-font">
+        <span>曝光计</span>
+        <span id="progressText">0 / 10</span>
+      </div>
+      <div class="exposure-meter">
+        <div class="exposure-fill" id="exposureFill"></div>
+      </div>
+    </div>
+    <p class="frame-number mono-font" id="frameNo">胶片帧 #01</p>
+    <h2 class="question-title title-font" id="questionText"></h2>
+    <div class="option-list" id="optionList"></div>
+  </div>
+
+  <!-- 显影加载视图 -->
+  <div class="view develop-view" id="develop">
+    <p class="develop-text title-font">正在显影底片...</p>
+    <div class="develop-loader">
+      <div class="develop-bar"></div>
+    </div>
+    <p class="mono-font" style="margin-top:16px;color:#aaa;">等待冲印心理鉴定报告</p>
+  </div>
+
+  <!-- 结果视图 -->
+  <div class="view result-view" id="result">
+    <div class="photo-card">
+      <span class="corner-1"></span>
+      <span class="corner-2"></span>
+      <h2 class="result-title title-font" id="resultTitle"></h2>
+      <p class="result-desc" id="resultDesc"></p>
+      <div class="data-group mono-font">
+        <div class="data-item data-1">
+          <span>◆ 理性底片分值</span><span id="scoreA">--</span>
+        </div>
+        <div class="data-item data-2">
+          <span>◆ 共情底片分值</span><span id="scoreB">--</span>
+        </div>
+        <div class="data-item data-3">
+          <span>◆ 随性底片分值</span><span id="scoreC">--</span>
+        </div>
+      </div>
+      <!-- SVG弧线文字鉴定印章 -->
+      <div class="stamp-wrap" id="stamp">
+        <svg viewBox="0 0 100 100">
+          <path id="circlePath" fill="none" d="M 50,50 m -42,0 a 42,42 0 1,1 84,0 a 42,42 0 1,1 -84,0"/>
+          <text font-size="10" fill="#C1432A">
+            <textPath href="#circlePath">心理暗房 · 鉴定有效</textPath>
+          </text>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#C1432A" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+    <div class="restart-btn-wrap">
+      <button class="btn mono-font" id="restartBtn">重新拍摄底片</button>
+    </div>
+  </div>
+
+<script>
+  // 10道测试题目，三维度
+  const questions = [
+    {
+      frame: "#01",
+      q: "面对突发意外打乱计划，你会？",
+      options: [
+        { text: "立刻梳理问题，快速制定新方案（理性）", score:{A:2,B:0,C:1} },
+        { text: "担心影响他人，优先照顾别人感受（共情）", score:{A:0,B:2,C:1} },
+        { text: "顺其自然，接受变化、随心调整（随性）", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#02",
+      q: "与人产生分歧时，你的处事方式是？",
+      options: [
+        { text: "讲道理摆逻辑，对错优先（理性）", score:{A:2,B:0,C:1} },
+        { text: "换位思考，主动包容化解矛盾（共情）", score:{A:0,B:2,C:1} },
+        { text: "懒得争执，随对方想法即可（随性）", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#03",
+      q: "空闲独处时，你更享受哪种状态？",
+      options: [
+        { text: "复盘梳理生活、规划后续事务（理性）", score:{A:2,B:1,C:0} },
+        { text: "沉浸情绪、治愈自我、放空内心（共情）", score:{A:1,B:2,C:0} },
+        { text: "随心所欲躺平、无目的放松（随性）", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#04",
+      q: "做重大决定时，你更依赖？",
+      options: [
+        { text: "数据、经验、逻辑推演（理性）", score:{A:2,B:0,C:1} },
+        { text: "内心感受、直觉与本心（共情）", score:{A:0,B:2,C:1} },
+        { text: "随缘选择、不纠结不内耗（随性）", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#05",
+      q: "看到他人难过低落，你会？",
+      options: [
+        { text: "理性分析原因，给出解决办法（理性）", score:{A:2,B:1,C:0} },
+        { text: "感同身受，主动安慰陪伴（共情）", score:{A:1,B:2,C:0} },
+        { text: "保持距离，不主动介入情绪（随性）", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#06",
+      q: "对待生活规则与约束，你的态度？",
+      options: [
+        { text: "严格遵守，敬畏秩序、自律性强（理性）", score:{A:2,B:0,C:1} },
+        { text: "灵活变通，兼顾人情与规则（共情）", score:{A:1,B:2,C:0} },
+        { text: "不喜束缚，随心而为（随性）", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#07",
+      q: "遭遇压力挫折，你会如何应对？",
+      options: [
+        { text: "冷静抗压，独自解决问题（理性）", score:{A:2,B:0,C:1} },
+        { text: "情绪敏感，需要他人安抚（共情）", score:{A:0,B:2,C:1} },
+        { text: "转移注意力，快速释怀放下（随性）", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#08",
+      q: "与人交往中，你更偏向？",
+      options: [
+        { text: "边界清晰，理性社交、分寸感强（理性）", score:{A:2,B:1,C:0} },
+        { text: "温柔待人，在意他人情绪体验（共情）", score:{A:1,B:2,C:0} },
+        { text: "松弛随性，不刻意维系关系（随性）", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#09",
+      q: "对待未来生活，你的心态是？",
+      options: [
+        { text: "提前规划，稳步推进、掌控未来（理性）", score:{A:2,B:0,C:1} },
+        { text: "心怀温柔，期待美好、随遇而安（共情）", score:{A:0,B:2,C:1} },
+        { text: "活在当下，享受即时快乐（随性）", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#10",
+      q: "面对遗憾与过错，你会？",
+      options: [
+        { text: "复盘总结，避免再次犯错（理性）", score:{A:2,B:1,C:0} },
+        { text: "内心纠结，久久难以释怀（共情）", score:{A:1,B:2,C:0} },
+        { text: "坦然接纳，翻篇不再执念（随性）", score:{A:0,B:1,C:2} }
+      ]
+    }
+  ];
+
+  // 结果库，支持混合人格判断
+  const resultPool = [
+    {
+      key: "A",
+      title: "底片人格：理性思辨者",
+      desc: "你的核心底色是理性与秩序。你拥有极强的逻辑思维和情绪自控力，遇事冷静不慌乱，擅长梳理问题、规划人生、掌控节奏。你做事分寸感十足，不被情绪左右，但偶尔会过于克制自我，忽略内心真实感受。是团队与生活中最靠谱的定心丸。"
+    },
+    {
+      key: "B",
+      title: "底片人格：温柔共情者",
+      desc: "你的核心底色是细腻与善意。你拥有超高的情绪感知力，能敏锐捕捉他人的情绪变化，擅长换位思考、包容他人。内心柔软、待人温柔，极具治愈力。但容易过度内耗、被他人情绪裹挟，常常委屈自己成全他人，需要学会自我保护。"
+    },
+    {
+      key: "C",
+      title: "底片人格：松弛随性者",
+      desc: "你的核心底色是自由与洒脱。你适应性极强，心态松弛通透，不被规则、执念、他人眼光束缚。活得真实自在，擅长快速消化负面情绪、翻篇过往。但偶尔过于佛系松弛，容易缺乏规划性，出现拖延、目标摇摆的情况。"
+    }
+  ];
+
+  // 视图DOM
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const homeView = $("#home");
+  const questionView = $("#question");
+  const developView = $("#develop");
+  const resultView = $("#result");
+
+  let currentIndex = 0;
+  let score = {A:0,B:0,C:0};
+
+  // 切换视图
+  function switchView(el) {
+    $$(".view").forEach(v=>v.classList.remove("active"));
+    el.classList.add("active");
+  }
+
+  // 开始测试
+  $("#startBtn").onclick = ()=>{
+    currentIndex = 0;
+    score = {A:0,B:0,C:0};
+    renderQuestion();
+    switchView(questionView);
+  }
+
+  // 渲染单题
+  function renderQuestion() {
+    const item = questions[currentIndex];
+    $("#frameNo").textContent = `胶片帧 ${item.frame}`;
+    $("#questionText").textContent = item.q;
+    $("#progressText").textContent = `${currentIndex+1} / ${questions.length}`;
+    $("#exposureFill").style.width = `${((currentIndex+1)/questions.length)*100}%`;
+
+    const optWrap = $("#optionList");
+    optWrap.innerHTML = "";
+    item.options.forEach(opt=>{
+      const div = document.createElement("div");
+      div.className = "option-item";
+      div.tabIndex = 0;
+      div.textContent = opt.text;
+      div.onclick = ()=> selectAnswer(opt.score);
+      div.onkeydown = (e)=>{
+        if(e.key === "Enter") selectAnswer(opt.score);
+      }
+      optWrap.appendChild(div);
+    })
+  }
+
+  // 选择答案计分
+  function selectAnswer(s) {
+    score.A += s.A;
+    score.B += s.B;
+    score.C += s.C;
+    currentIndex++;
+    if(currentIndex >= questions.length) {
+      switchView(developView);
+      setTimeout(()=>{
+        renderResult();
+        switchView(resultView);
+        setTimeout(()=> $("#stamp").classList.add("active"),500);
+      },2000);
+    } else {
+      renderQuestion();
+    }
+  }
+
+  // 渲染结果
+  function renderResult() {
+    $("#stamp").classList.remove("active");
+    const maxSort = Object.entries(score).sort((a,b)=>b[1]-a[1]);
+    const maxKey = maxSort[0][0];
+    const res = resultPool.find(item => item.key === maxKey);
+
+    $("#resultTitle").textContent = res.title;
+    $("#resultDesc").textContent = res.desc;
+    $("#scoreA").textContent = score.A + " 分";
+    $("#scoreB").textContent = score.B + " 分";
+    $("#scoreC").textContent = score.C + " 分";
+  }
+
+  // 重新测试
+  $("#restartBtn").onclick = ()=>{
+    switchView(homeView);
+  }
+</script>
+</body>
+</html>
