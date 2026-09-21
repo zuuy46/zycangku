@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <title>心理暗房 | 心理测试</title>
+  <style>
+    /* ========== 基础变量：指定色值 ========== */
+    :root {
+      --darkroom-black: #14110D;
+      --photo-paper: #EDE3CC;
+      --safe-light-red: #C1432A;
+      --developer-green: #3E6B5C;
+      --fixing-gold: #B08D3E;
+      --white: #ffffff;
+    }
+
+    /* 全局重置 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background-color: var(--darkroom-black);
+      color: var(--white);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /* 字体定义 */
+    .title-font {
+      font-family: "Noto Serif SC", serif; /* 替代 Noth Serif SC，线上可用 */
+      font-weight: 500;
+    }
+    .mono-font {
+      font-family: "JetBrains Mono", monospace;
+      letter-spacing: 0.06em;
+    }
+
+    /* 页面容器，多视图切换：首页 / 答题 / 显影加载 / 结果页 */
+    .view {
+      display: none;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* ========== 首页 ========== */
+    .home-view {
+      padding-top: 80px;
+      text-align: center;
+    }
+    .home-view h1 {
+      font-size: 2.2rem;
+      color: var(--photo-paper);
+      margin-bottom: 12px;
+    }
+    .home-view .subtitle {
+      color: #b8b0a2;
+      margin-bottom: 48px;
+      font-size: 0.95rem;
+    }
+    .home-desc {
+      text-align: left;
+      border-left: 2px solid var(--safe-light-red);
+      padding-left: 16px;
+      margin-bottom: 40px;
+      color: #c9c2b4;
+      line-height: 1.7;
+    }
+    .btn {
+      background: transparent;
+      border: 1px solid var(--safe-light-red);
+      color: var(--safe-light-red);
+      padding: 14px 32px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-radius: 2px;
+    }
+    .btn:focus-visible {
+      outline: 2px solid var(--safe-light-red);
+      outline-offset: 3px;
+    }
+    .btn:hover {
+      background-color: var(--safe-light-red);
+      color: var(--darkroom-black);
+    }
+
+    /* ========== 答题页：曝光计进度条 ========== */
+    .question-view {
+      padding-top: 40px;
+    }
+    .exposure-meter-wrap {
+      margin-bottom: 32px;
+    }
+    .exposure-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .exposure-meter {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .exposure-fill {
+      height: 100%;
+      width: 0%;
+      background-color: var(--safe-light-red);
+      transition: width 0.4s ease;
+    }
+    .frame-number {
+      color: var(--fixing-gold);
+      margin-bottom: 20px;
+    }
+    .question-title {
+      font-size: 1.4rem;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .option-item {
+      border: 1px solid rgba(237, 227, 204, 0.25);
+      padding: 16px;
+      cursor: pointer;
+      transition: 0.2s;
+      border-radius: 2px;
+    }
+    .option-item:focus-visible {
+      outline: 2px solid var(--safe-light-red);
+      outline-offset: 3px;
+    }
+    .option-item:hover {
+      border-color: var(--safe-light-red);
+      background: rgba(193, 67, 42, 0.08);
+    }
+
+    /* ========== 显影加载页 ========== */
+    .develop-view {
+      padding-top: 100px;
+      text-align: center;
+    }
+    .develop-text {
+      color: var(--photo-paper);
+      margin-bottom: 24px;
+    }
+    .develop-loader {
+      width: 120px;
+      height: 4px;
+      background: rgba(237, 227, 204, 0.15);
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .develop-bar {
+      height: 100%;
+      width: 30%;
+      background: var(--developer-green);
+      animation: developAnim 1.8s ease-in-out infinite;
+    }
+    @keyframes developAnim {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(300%); }
+    }
+
+    /* ========== 结果页：冲印照片卡片 ========== */
+    .result-view {
+      padding-top: 40px;
+    }
+    .photo-card {
+      background-color: var(--photo-paper);
+      color: var(--darkroom-black);
+      padding: 32px 24px;
+      position: relative;
+      transform: rotate(-1.2deg);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    /* 照片四角卡角装饰 */
+    .photo-card::before, .photo-card::after,
+    .photo-card .corner-1, .photo-card .corner-2 {
+      content: "";
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--darkroom-black);
+      border-radius: 1px;
+    }
+    .photo-card::before { top: 10px; left:10px; border-right: none; border-bottom: none; }
+    .photo-card::after  { top:10px; right:10px; border-left: none; border-bottom: none; }
+    .photo-card .corner-1 { bottom:10px; left:10px; border-right: none; border-top: none; }
+    .photo-card .corner-2 { bottom:10px; right:10px; border-left: none; border-top: none; }
+
+    .result-title {
+      font-size: 1.7rem;
+      margin-bottom: 16px;
+    }
+    .result-desc {
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+    .data-group {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap:10px;
+    }
+    .data-item {
+      display:flex;
+      justify-content: space-between;
+    }
+    .data-1 { color: var(--safe-light-red); }
+    .data-2 { color: var(--developer-green); }
+    .data-3 { color: var(--fixing-gold); }
+
+    /* SVG 鉴定印章，延迟0.5s弹入，冲压动画 */
+    .stamp-wrap {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 110px;
+      height: 110px;
+      opacity:0;
+      transform: scale(1.6);
+      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      pointer-events:none;
+    }
+    .stamp-wrap.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .restart-btn-wrap {
+      margin-top:40px;
+      text-align:center;
+    }
+
+    /* ========== 减少动画适配 prefers-reduced-motion ========== */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* 移动端最小360px适配 */
+    @media (max-width:360px) {
+      body { padding:16px 12px; }
+      .photo-card { padding:24px 16px; }
+      .result-title { font-size:1.4rem; }
+    }
+  </style>
+  <!-- 字体预加载 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 首页视图 -->
+  <div class="view home-view active" id="home">
+    <h1 class="title-font">心理暗房</h1>
+    <p class="subtitle mono-font">PSYCHO DARKROOM · 曝光你的心理底片</p>
+    <div class="home-desc">
+      <p>心理如同未曝光的胶片。</p>
+      <p>每一道问题，都是一次曝光。</p>
+      <p>完成测试，等待显影，冲印属于你的心理鉴定报告。</p>
+    </div>
+    <button class="btn mono-font" id="startBtn">开始曝光测试</button>
+  </div>
+
+  <!-- 答题视图 -->
+  <div class="view question-view" id="question">
+    <div class="exposure-meter-wrap">
+      <div class="exposure-label mono-font">
+        <span>曝光计</span>
+        <span id="progressText">0 / 5</span>
+      </div>
+      <div class="exposure-meter">
+        <div class="exposure-fill" id="exposureFill"></div>
+      </div>
+    </div>
+    <p class="frame-number mono-font" id="frameNo">胶片帧 #01</p>
+    <h2 class="question-title title-font" id="questionText"></h2>
+    <div class="option-list" id="optionList"></div>
+  </div>
+
+  <!-- 显影加载视图 -->
+  <div class="view develop-view" id="develop">
+    <p class="develop-text title-font">正在显影底片...</p>
+    <div class="develop-loader">
+      <div class="develop-bar"></div>
+    </div>
+    <p class="mono-font" style="margin-top:16px;color:#aaa;">等待冲印鉴定</p>
+  </div>
+
+  <!-- 结果视图 -->
+  <div class="view result-view" id="result">
+    <div class="photo-card">
+      <span class="corner-1"></span>
+      <span class="corner-2"></span>
+      <h2 class="result-title title-font" id="resultTitle"></h2>
+      <p class="result-desc" id="resultDesc"></p>
+      <div class="data-group mono-font">
+        <div class="data-item data-1">
+          <span>维度A</span><span id="scoreA">--</span>
+        </div>
+        <div class="data-item data-2">
+          <span>维度B</span><span id="scoreB">--</span>
+        </div>
+        <div class="data-item data-3">
+          <span>维度C</span><span id="scoreC">--</span>
+        </div>
+      </div>
+      <!-- SVG弧线文字鉴定印章 -->
+      <div class="stamp-wrap" id="stamp">
+        <svg viewBox="0 0 100 100">
+          <path id="circlePath" fill="none" d="M 50,50 m -42,0 a 42,42 0 1,1 84,0 a 42,42 0 1,1 -84,0"/>
+          <text font-size="10" fill="#C1432A">
+            <textPath href="#circlePath">心理暗房 · 鉴定有效</textPath>
+          </text>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#C1432A" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+    <div class="restart-btn-wrap">
+      <button class="btn mono-font" id="restartBtn">重新拍摄底片</button>
+    </div>
+  </div>
+
+<script>
+  // 测试题目数据，5题
+  const questions = [
+    {
+      frame: "#01",
+      q: "周末独处时，你更倾向于？",
+      options: [
+        { text:"安静沉浸在自己的爱好", score:{A:2,B:1,C:0} },
+        { text:"轻度社交，和少数好友见面", score:{A:1,B:2,C:1} },
+        { text:"安排丰富活动填满时间", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#02",
+      q: "计划被意外打乱时，你的第一反应？",
+      options: [
+        { text:"感到烦躁，希望尽快恢复原定计划", score:{A:2,B:0,C:1} },
+        { text:"短暂调整，灵活更换方案", score:{A:1,B:2,C:1} },
+        { text:"顺势接受，随遇而安", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#03",
+      q: "看待他人情绪，你通常？",
+      options: [
+        { text:"很容易感知共情", score:{A:1,B:2,C:0} },
+        { text:"理性观察，保持距离", score:{A:2,B:0,C:1} },
+        { text:"容易被他人情绪裹挟", score:{A:0,B:1,C:2} }
+      ]
+    },
+    {
+      frame: "#04",
+      q: "做重要选择，你依靠？",
+      options: [
+        { text:"过往经验与逻辑推演", score:{A:2,B:1,C:0} },
+        { text:"内心直觉感受", score:{A:0,B:2,C:1} },
+        { text:"权衡他人建议", score:{A:1,B:0,C:2} }
+      ]
+    },
+    {
+      frame: "#05",
+      q: "面对压力，你习惯？",
+      options: [
+        { text:"独自消化，不轻易倾诉", score:{A:2,B:0,C:1} },
+        { text:"找人倾诉释放情绪", score:{A:0,B:2,C:1} },
+        { text:"转移注意力回避压力", score:{A:1,B:1,C:2} }
+      ]
+    }
+  ];
+
+  // 结果库
+  const resultPool = [
+    { title:"底片类型：内敛观测者", desc:"你的心理底片偏向冷静观察，习惯保留内心边界，对外界保持审慎。擅长理性分析，但偶尔会压抑自身感受。", A:9,B:4,C:3 },
+    { title:"底片类型：共情感知者", desc:"你对情绪信号十分敏感，能捕捉他人细微感受。内心柔软，但容易受到外部情绪干扰，需要留出独处修复时间。", A:4,B:9,C:3 },
+    { title:"底片类型：流动适应者", desc:"你拥有很强的环境适配能力，心态松弛，不容易被固定框架束缚。缺点是长期目标容易摇摆不定。", A:4,B:3,C:9 }
+  ];
+
+  // 视图DOM
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const homeView = $("#home");
+  const questionView = $("#question");
+  const developView = $("#develop");
+  const resultView = $("#result");
+
+  let currentIndex = 0;
+  let score = {A:0,B:0,C:0};
+
+  // 切换视图
+  function switchView(el) {
+    $$(".view").forEach(v=>v.classList.remove("active"));
+    el.classList.add("active");
+  }
+
+  // 开始测试
+  $("#startBtn").onclick = ()=>{
+    currentIndex = 0;
+    score = {A:0,B:0,C:0};
+    renderQuestion();
+    switchView(questionView);
+  }
+
+  // 渲染单题
+  function renderQuestion() {
+    const item = questions[currentIndex];
+    $("#frameNo").textContent = `胶片帧 ${item.frame}`;
+    $("#questionText").textContent = item.q;
+    $("#progressText").textContent = `${currentIndex+1} / ${questions.length}`;
+    $("#exposureFill").style.width = `${((currentIndex+1)/questions.length)*100}%`;
+
+    const optWrap = $("#optionList");
+    optWrap.innerHTML = "";
+    item.options.forEach(opt=>{
+      const div = document.createElement("div");
+      div.className = "option-item";
+      div.tabIndex = 0;
+      div.textContent = opt.text;
+      div.onclick = ()=> selectAnswer(opt.score);
+      div.onkeydown = (e)=>{
+        if(e.key === "Enter") selectAnswer(opt.score);
+      }
+      optWrap.appendChild(div);
+    })
+  }
+
+  // 选择答案
+  function selectAnswer(s) {
+    score.A += s.A;
+    score.B += s.B;
+    score.C += s.C;
+    currentIndex++;
+    if(currentIndex >= questions.length) {
+      // 跳转显影页
+      switchView(developView);
+      setTimeout(()=>{
+        renderResult();
+        switchView(resultView);
+        // 印章延迟0.5s弹入
+        setTimeout(()=> $("#stamp").classList.add("active"),500);
+      },2000);
+    } else {
+      renderQuestion();
+    }
+  }
+
+  // 渲染结果
+  function renderResult() {
+    $("#stamp").classList.remove("active");
+    // 取最高分项
+    const maxKey = Object.entries(score).sort((a,b)=>b[1]-a[1])[0][0];
+    let res;
+    if(maxKey === "A") res = resultPool[0];
+    else if(maxKey === "B") res = resultPool[1];
+    else res = resultPool[2];
+
+    $("#resultTitle").textContent = res.title;
+    $("#resultDesc").textContent = res.desc;
+    $("#scoreA").textContent = score.A;
+    $("#scoreB").textContent = score.B;
+    $("#scoreC").textContent = score.C;
+  }
+
+  $("#restartBtn").onclick = ()=>{
+    switchView(homeView);
+  }
+</script>
+</body>
+</html>
