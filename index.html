@@ -40,25 +40,250 @@ body {
 }
 .view.active { display: block; opacity: 1; transform: translateY(0); }
 
-.home-view { padding-top: 80px; text-align: center; }
+/* ============================================================
+   首页动效（主题：心理暗房 / 底片曝光）
+   色光三原色（安全红灯、显影绿、定影金）暗房环境光，
+   叠加暗房灯呼吸闪烁 + 飞尘 + 胶片划痕 + 扫描红光 + 标题显影
+   ============================================================ */
+.home-view {
+  padding-top: 80px; text-align: center;
+  position: relative;
+}
+
+/* ---- 动态背景层（暗房灯 + 暗角 + 飞尘 + 划痕 + 扫描光） ---- */
+.home-fx {
+  position: absolute;
+  top: -24px; left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  height: max(100vh, calc(100% + 48px));
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 0;
+  /* 暗房灯三色环境光，缓慢明暗呼吸 */
+  background:
+    radial-gradient(38% 30% at 50% 6%, rgba(193,67,42,.30), transparent 70%),
+    radial-gradient(34% 28% at 14% 44%, rgba(62,107,92,.20), transparent 72%),
+    radial-gradient(36% 30% at 88% 74%, rgba(176,141,62,.18), transparent 72%);
+  animation: darkroomLight 9s ease-in-out infinite;
+  /* 底部渐隐，避免覆盖区与纯色背景出现硬边 */
+  -webkit-mask-image: linear-gradient(180deg, #000 76%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 76%, transparent 100%);
+}
+@keyframes darkroomLight {
+  0%, 100% { opacity: .7; filter: hue-rotate(0deg); }
+  50% { opacity: 1; filter: hue-rotate(-12deg); }
+}
+/* 暗角 */
+.home-fx::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 40%, transparent 34%, rgba(8,6,4,.72) 100%);
+}
+/* 周期性扫描红光：像安全灯扫过相纸 */
+.home-fx::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%;
+  width: 55%;
+  background: linear-gradient(100deg, transparent, rgba(193,67,42,.16) 45%, rgba(237,227,204,.1) 55%, transparent);
+  animation: redScan 7.5s cubic-bezier(.5,0,.5,1) infinite;
+}
+@keyframes redScan {
+  0% { left: -60%; opacity: 0; }
+  12% { opacity: 1; }
+  55% { opacity: 1; }
+  70%, 100% { left: 118%; opacity: 0; }
+}
+
+/* 漂浮尘埃：胶片颗粒感 */
+.dust {
+  position: absolute; border-radius: 50%;
+  background: var(--photo-paper);
+  opacity: .28;
+  animation: dustDrift linear infinite;
+}
+@keyframes dustDrift {
+  0% { transform: translate(0, 22px) scale(.6); opacity: 0; }
+  18% { opacity: .5; }
+  80% { opacity: .34; }
+  100% { transform: translate(16px, -78px) scale(1.15); opacity: 0; }
+}
+
+/* 胶片划痕：像真实老胶片那样随机、短暂地闪一下
+   时长/延迟/位置都由 JS 每次随机生成（写死的话三条线会按固定周期重复出现，
+   看起来就像"规律冒白线"，很出戏）；持续时间和出现频率也都大幅收敛，
+   只在偶尔扫过时留一道极淡的高光。 */
+.scratch {
+  position: absolute; top: 8%; height: 46%;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, rgba(237,227,204,.34) 38%, rgba(237,227,204,.34) 66%, transparent);
+  will-change: opacity, transform;
+  pointer-events: none;
+  opacity: 0;
+  animation: scratchFlicker .5s ease-out 1 forwards;
+}
+@keyframes scratchFlicker {
+  0% { opacity: 0; transform: translateX(0); }
+  22% { opacity: .5; }
+  38% { opacity: .16; transform: translateX(.6px); }
+  62% { opacity: .33; transform: translateX(-.4px); }
+  100% { opacity: 0; transform: translateX(.3px); }
+}
+
+/* 极缓慢的下扫光栅：给静态画面一点"屏幕在刷新"的呼吸感 */
+.scanline {
+  position: absolute; left: 0; right: 0; top: -30%;
+  height: 26%;
+  background: linear-gradient(180deg, transparent, rgba(237,227,204,.045) 45%, rgba(237,227,204,.075) 55%, transparent);
+  animation: scanDown 13s linear infinite;
+}
+@keyframes scanDown {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateY(560%); opacity: 0; }
+}
+
+/* 曝光倒计时提示（右上角小红点） */
+.rec-dot {
+  position: absolute; top: 18px; right: 20px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--safe-light-red);
+  box-shadow: 0 0 8px rgba(193,67,42,.9);
+  animation: recBlink 1.5s ease-in-out infinite;
+}
+@keyframes recBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .25; transform: scale(.78); }
+}
+
+/* 首页内容整体置于背景之上 */
+.home-view > *:not(.home-fx) { position: relative; z-index: 1; }
+
+/* ---- 标题：显影式浮现 ---- */
+.home-title-wrap { position: relative; display: inline-block; }
 .home-view h1 {
   font-size: 2.2rem; color: var(--photo-paper); margin-bottom: 12px;
   text-shadow: 0 0 12px rgba(193, 67, 42, 0.35);
+  opacity: 0;
+  filter: blur(14px);
+  letter-spacing: .22em;
+  animation: developIn 1.6s cubic-bezier(.2,.7,.25,1) .15s forwards,
+             titleBreathe 5.5s ease-in-out 1.9s infinite;
 }
-.home-view .subtitle { color: #b8b0a2; margin-bottom: 24px; font-size: 0.95rem; }
+@keyframes developIn {
+  0% { opacity: 0; filter: blur(14px); letter-spacing: .42em; }
+  60% { opacity: .85; filter: blur(3px); }
+  100% { opacity: 1; filter: blur(0); letter-spacing: .22em; }
+}
+/* 显影完成后：暖色呼吸光 + 轻微上下浮动 */
+@keyframes titleBreathe {
+  0%, 100% { text-shadow: 0 0 10px rgba(193,67,42,.28); transform: translateY(0); }
+  50% { text-shadow: 0 0 22px rgba(193,67,42,.6), 0 0 34px rgba(176,141,62,.24); transform: translateY(-2px); }
+}
+/* 标题后方一圈红光晕（像显影扩光） */
+.home-title-wrap::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 210px; height: 74px; transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center, rgba(193,67,42,.22), transparent 68%);
+  filter: blur(6px);
+  z-index: -1;
+  animation: haloBreathe 5.5s ease-in-out infinite;
+}
+@keyframes haloBreathe {
+  0%, 100% { opacity: .5; transform: translate(-50%, -50%) scale(.94); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* ---- 副标题：字距收拢 + 渐显 ---- */
+.home-view .subtitle {
+  color: #b8b0a2; margin-bottom: 24px; font-size: 0.95rem;
+  opacity: 0;
+  animation: subIn .9s ease-out .95s forwards;
+}
+@keyframes subIn {
+  0% { opacity: 0; letter-spacing: .5em; }
+  100% { opacity: 1; letter-spacing: .06em; }
+}
+
+/* ---- 描述与维度：逐条滑入 ---- */
 .home-desc {
   text-align: left; border-left: 2px solid var(--safe-light-red);
   padding-left: 16px; margin-bottom: 20px; color: #c9c2b4; line-height: 1.7;
+  opacity: 0;
+  animation: slideInLeft .7s cubic-bezier(.22,1,.36,1) 1.25s forwards;
 }
+@keyframes slideInLeft {
+  0% { opacity: 0; transform: translateX(-14px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.home-desc p { opacity: 0; animation: lineFade .55s ease-out forwards; }
+.home-desc p:nth-child(1) { animation-delay: 1.45s; }
+.home-desc p:nth-child(2) { animation-delay: 1.68s; }
+.home-desc p:nth-child(3) { animation-delay: 1.91s; }
+@keyframes lineFade {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .dimension-desc {
   text-align: left; padding: 16px; background: rgba(255,255,255,0.03);
   margin-bottom: 40px; border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgba(237,227,204,.06);
 }
 .dimension-item {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 10px; font-size: 0.9rem; line-height: 1.6;
+  opacity: 0;
+  animation: dimIn .6s cubic-bezier(.22,1,.36,1) forwards;
 }
-.dimension-tag { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+.dimension-item:nth-child(1) { animation-delay: 2.15s; }
+.dimension-item:nth-child(2) { animation-delay: 2.35s; }
+.dimension-item:nth-child(3) { animation-delay: 2.55s; }
+@keyframes dimIn {
+  0% { opacity: 0; transform: translateX(-12px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+/* 色块：对应底片色，呼吸发光 */
+.dimension-tag {
+  width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
+  animation: tagGlow 3.2s ease-in-out infinite;
+}
+.dimension-item:nth-child(1) .dimension-tag { animation-delay: 0s; }
+.dimension-item:nth-child(2) .dimension-tag { animation-delay: .45s; }
+.dimension-item:nth-child(3) .dimension-tag { animation-delay: .9s; }
+@keyframes tagGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(0,0,0,0); transform: scale(1); }
+  50% { box-shadow: 0 0 12px 2px currentColor; transform: scale(1.18); }
+}
+
+/* ---- 按钮：入场 + 安全灯呼吸 + 扫光 ---- */
+.home-view .btn {
+  opacity: 0;
+  position: relative;
+  overflow: hidden;
+  animation: btnIn .7s cubic-bezier(.22,1,.36,1) 2.75s forwards,
+             btnBreathe 3.4s ease-in-out 3.5s infinite;
+}
+@keyframes btnIn {
+  0% { opacity: 0; transform: translateY(10px) scale(.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes btnBreathe {
+  0%, 100% { box-shadow: 0 0 0 rgba(193,67,42,0); border-color: rgba(193,67,42,.85); }
+  50% { box-shadow: 0 0 18px rgba(193,67,42,.42); border-color: var(--safe-light-red); }
+}
+/* 按钮上的扫光条 */
+.home-view .btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -70%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+  animation: btnSheen 3.4s ease-in-out 3.9s infinite;
+}
+@keyframes btnSheen {
+  0% { left: -70%; }
+  45% { left: 128%; }
+  100% { left: 128%; }
+}
 
 .btn {
   background: transparent; border: 1px solid var(--safe-light-red);
@@ -335,7 +560,14 @@ body {
 <div class="container">
 
   <div class="view home-view active" id="home">
-    <h1 class="title-font">心理暗房</h1>
+    <!-- 动态背景：暗房环境光 / 飞尘 / 胶片划痕 / 扫描红光 -->
+    <div class="home-fx" id="homeFx" aria-hidden="true">
+      <span class="rec-dot"></span>
+    </div>
+
+    <div class="home-title-wrap">
+      <h1 class="title-font">心理暗房</h1>
+    </div>
     <p class="subtitle mono-font">PSYCHO DARKROOM · 曝光你的心理底片</p>
 
     <div class="home-desc">
@@ -982,6 +1214,93 @@ let isAnswering = false;
 function switchView(el) {
   $$(".view").forEach(v => v.classList.remove("active"));
   requestAnimationFrame(() => el.classList.add("active"));
+  if (el.id === "home") replayHomeAnim();
+}
+
+/* ===== 首页动效：氛围元素生成 + 随机划痕调度 + 重播 ===== */
+
+// 只在首次生成，后续复用；避免重复插入
+function ensureHomeFx() {
+  const fx = $("#homeFx");
+  if (!fx || fx.dataset.built) return fx;
+  fx.dataset.built = "1";
+
+  fx.insertAdjacentHTML("beforeend", "<span class=\"scanline\"></span>");
+
+  // 飞尘：26 粒，随机大小 / 位置 / 时长 / 相位（负延迟让开场就处于随机相位）
+  let html = "";
+  for (let i = 0; i < 26; i++) {
+    const size = (1 + Math.random() * 2.4).toFixed(2);
+    const left = (Math.random() * 100).toFixed(2);
+    const top = (18 + Math.random() * 78).toFixed(2);
+    const dur = (7 + Math.random() * 9).toFixed(2);
+    const delay = (Math.random() * 10).toFixed(2);
+    const op = (0.12 + Math.random() * 0.3).toFixed(2);
+    html += `<i class="dust" style="width:${size}px;height:${size}px;left:${left}%;top:${top}%;` +
+            `animation-duration:${dur}s;animation-delay:-${delay}s;opacity:${op};"></i>`;
+  }
+  fx.insertAdjacentHTML("beforeend", html);
+
+  startScratchLoop();
+  return fx;
+}
+
+/**
+ * 划痕调度：不再用「固定周期的 CSS 循环动画」
+ * （三条线按固定秒数反复出现，观感上是"规律冒白线"，很出戏）。
+ * 改成每次随机 6~15s 才触发一条，位置/高度/时长全随机，播完即隐藏。
+ */
+let scratchTimer = null;
+function startScratchLoop() {
+  if (scratchTimer) return;
+  const fx = $("#homeFx");
+  if (!fx) return;
+
+  const fire = () => {
+    // 页面不在首页时跳过这一轮，避免在别的页面后台空转
+    const onHome = $("#home").classList.contains("active");
+    if (onHome && !document.hidden) {
+      const el = document.createElement("span");
+      el.className = "scratch";
+      el.style.left = (Math.random() * 92 + 3).toFixed(2) + "%";
+      el.style.top = (4 + Math.random() * 32).toFixed(2) + "%";
+      el.style.height = (22 + Math.random() * 40).toFixed(2) + "%";
+      el.style.animationDuration = (0.34 + Math.random() * 0.3).toFixed(2) + "s";
+      fx.appendChild(el);
+      el.addEventListener("animationend", () => el.remove(), { once: true });
+      // 兜底：万一 animationend 没触发（例如页面被隐藏冻结），也要清掉
+      setTimeout(() => el.remove(), 1200);
+
+      // 偶尔来一组"双划痕"，更像真实胶片损伤
+      if (Math.random() < 0.25) {
+        setTimeout(() => {
+          if (!$("#home").classList.contains("active")) return;
+          const e2 = document.createElement("span");
+          e2.className = "scratch";
+          e2.style.left = (Math.random() * 92 + 3).toFixed(2) + "%";
+          e2.style.top = (4 + Math.random() * 32).toFixed(2) + "%";
+          e2.style.height = (18 + Math.random() * 30).toFixed(2) + "%";
+          e2.style.animationDuration = "0.42s";
+          fx.appendChild(e2);
+          e2.addEventListener("animationend", () => e2.remove(), { once: true });
+          setTimeout(() => e2.remove(), 1200);
+        }, 90 + Math.random() * 160);
+      }
+    }
+    scratchTimer = setTimeout(fire, 6000 + Math.random() * 9000);
+  };
+
+  scratchTimer = setTimeout(fire, 2500 + Math.random() * 3000);
+}
+
+// 回到首页时重播入场动效（否则动画只播一次，再来就没效果了）
+function replayHomeAnim() {
+  const home = $("#home");
+  if (!home) return;
+  const sel = "h1, .subtitle, .home-desc, .home-desc p, .dimension-item, .btn, .home-fx";
+  home.querySelectorAll(sel).forEach(el => { el.style.animation = "none"; });
+  void home.offsetWidth; // 强制重排，重置动画时间轴
+  home.querySelectorAll(sel).forEach(el => { el.style.animation = ""; });
 }
 
 function calcResultKey() {
@@ -1092,6 +1411,11 @@ $("#restartBtn").onclick = () => {
   $("#percentC").style.width = "0%";
   switchView($("#home"));
 };
+
+// 初始化首页氛围元素（飞尘 / 划痕调度）
+ensureHomeFx();
 </script>
+</body>
+</html>
 </body>
 </html>
